@@ -1,0 +1,7 @@
+Storage/*
+Cache/*
+*.SHA1
+*.hashs
+*.uc
+*.o
+BF

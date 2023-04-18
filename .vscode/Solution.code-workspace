@@ -1,0 +1,39 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../src/"
+		},
+		{
+			"path": "../Storage/"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"iosfwd": "cpp",
+			"ostream": "cpp",
+			"fstream": "cpp",
+			"iostream": "cpp"
+		},
+		"files.exclude": {
+			"**/.git": true,
+			"Storage": true,
+			"**/.hg": true,
+			"**/CVS": true,
+			"**/.DS_Store": true,
+			"src": true,
+			"**/*.SHA1": true,
+			"**/*.hashs": true,
+			"**/*.uc": true,
+			"**/*.o": true,
+			"build_client.sh": true,
+			"build_server.sh": true,
+			"build_ClientAndServer.sh": true,
+		}
+	}
+}
+
+
+
