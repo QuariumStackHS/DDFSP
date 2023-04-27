@@ -49,10 +49,20 @@ std::string dump_headers(const Headers &headers)
 
     return s;
 }
-
+string get_command(string path)
+{
+    string k = "";
+    for (int i = 1; path[i] != '/'; i++)
+    {
+        k.push_back(path[i]);
+    }
+    return k;
+}
 std::string log(const Request &req, const Response &res)
 {
-    /*std::string s;
+    if(strcmp("write",get_command(req.path).c_str())==0)
+    return "";
+    std::string s;
     char buf[BUFSIZ];
 
     s += "================================\n";
@@ -64,7 +74,7 @@ std::string log(const Request &req, const Response &res)
     std::string query;
     for (auto it = req.params.begin(); it != req.params.end(); ++it)
     {
-        const auto &x = *it;
+        const auto &x = *it; 
         snprintf(buf, sizeof(buf), "%c%s=%s",
                  (it == req.params.begin()) ? '?' : '&', x.first.c_str(),
                  x.second.c_str());
@@ -89,19 +99,10 @@ std::string log(const Request &req, const Response &res)
 
     s += "\n";
 
-    return s;*/
+    return s;
     return "";
 }
 string Packages;
-string get_command(string path)
-{
-    string k = "";
-    for (int i = 1; path[i] != '/'; i++)
-    {
-        k.push_back(path[i]);
-    }
-    return k;
-}
 string get_args(string path)
 {
     string k = "";

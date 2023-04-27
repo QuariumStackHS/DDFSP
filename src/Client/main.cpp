@@ -6,6 +6,7 @@
 //
 
 #include "../common/httplib/httplib.hpp"
+#include <thread>
 // #include "../common/b64/b64.hpp"
 // #include "../common/SHA256/sha256.h"
 #include <iostream>
@@ -77,7 +78,7 @@ bool exist(httplib::Client &cli, string filename)
 map<string, int> sent;
 void DDWrite(httplib::Client &cli, string filename)
 {
-    //return;
+    // return;
     long filesize = GetFileSize(filename);
 
     ifstream F(filename);
@@ -86,7 +87,7 @@ void DDWrite(httplib::Client &cli, string filename)
     string Hash;
     int blocks = -1;
     int equalcount = 0;
-    //cout << endl;
+    // cout << endl;
     time_t CE;
     time(&CE);
     while (!F.eof())
@@ -341,12 +342,130 @@ string replacecharparchar(string s, char in, char out)
             buffer.push_back(s[i]);
     return buffer;
 }
+int irclastsize = 0;
+string hostname;
+vector<string> global_argv;
+#include <unistd.h>
+#include <termios.h>
+
+char getch()
+{
+    char buf = 0;
+    struct termios old = {0};
+    if (tcgetattr(0, &old) < 0)
+        perror("tcsetattr()");
+    old.c_lflag &= ~ICANON;
+    old.c_lflag &= ~ECHO;
+    old.c_cc[VMIN] = 1;
+    old.c_cc[VTIME] = 0;
+    if (tcsetattr(0, TCSANOW, &old) < 0)
+        perror("tcsetattr ICANON");
+    if (read(0, &buf, 1) < 0)
+        perror("read()");
+    old.c_lflag |= ICANON;
+    old.c_lflag |= ECHO;
+    if (tcsetattr(0, TCSADRAIN, &old) < 0)
+        perror("tcsetattr ~ICANON");
+    return (buf);
+}
+string s = "";
+int _x=0;
+int _y=0;
+bool mousemode=0;
+void Chat_client(string mode, httplib::Client &client)
+{
+    int _lasty=0;
+    string buff = "";
+    if (strcmp(mode.c_str(), "rtc") == 0)
+    {
+        int lasts_size = 0;
+        while (true)
+        {
+            auto resd = client.Get("/download/irc/");
+            gethashs_step2(resd->body);
+            if (hashs.size() != irclastsize || _lasty!=_y)
+            {_lasty=_y;
+                lasts_size = s.size();
+                system("clear");
+                irclastsize = hashs.size();
+                for (int i = 0; i < hashs.size(); i++)
+                {
+                    if(_x==0){
+                        if(i==hashs.size()-_y)cout<<BOLDMAGENTA;
+                    }
+                    cout << b64decode(client.Get("/read/" + hashs[i] + "/")->body)<<RESET << "\r";
+                }
+                cout << "\r"
+                     << " ->" << s;
+            }
+            else
+            {
+                cout << "\r"
+                     << "-->" << s <<" xy: "<<_x<<","<<_y<< std::flush;
+            }
+
+#include <chrono>
+#include <thread>
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(270));
+        }
+    }
+    if (strcmp(mode.c_str(), "irc") == 0)
+    {
+
+        char c;
+        char lastc;
+        
+        while (true)
+        {
+            // cin.getline(Buff, 1024);
+            s = "";
+            while (c != '\n')
+            {
+                c = getch();
+                //cout<<(int)c<<endl;
+                if(c==127)
+                s.pop_back();
+                else if(lastc==91){
+                    if(mousemode){
+                        if(c==65){
+                            _y++;
+                        }
+                        if(c==66){
+                            _y--;
+                        }
+                        if(c==68){
+                            _x--;
+                        }
+                        if(c==67){
+                            _x++;
+                        }
+                    }
+                }
+                else if(c==9){
+                    mousemode=!mousemode;
+                }
+                else if(c!=91)
+                s.push_back(c);
+                
+                
+                lastc=c;
+            }
+            c = '\0';
+            buff = s;
+            client.Get("/write/" + sha256(hostname + " : " + buff) + "/" + b64encode(hostname + " : " + buff) + "/");
+            client.Get("/append/irc/" + sha256(hostname + " : " + buff) + ",/");
+        }
+    }
+}
 int main(int argc, char **argv)
 {
     DD = Datadedup(Cache);
     hasher = SHA256();
     string buff = "";
     char Buff[1024];
+    for (int i = 0; i < argc; i++)
+        global_argv.push_back(argv[i]);
     if (argc < 2)
     {
         cout << "usage Client ip port" << endl;
@@ -371,6 +490,7 @@ int main(int argc, char **argv)
         exit(0);
     }
     httplib::Client client(argv[1], fu);
+    hostname = argv[1];
     Commandlineinterface cli;
     auto res = client.Get("/hi");
     if (!res)
@@ -466,6 +586,17 @@ int main(int argc, char **argv)
                     system("sh Client.sh");
                     // cout << "disconected" << endl;
                     return 0;
+                }
+
+                if (strcmp(hashs[i].c_str(), "chat") == 0)
+                {
+                    string s = string(global_argv[0] + " " + global_argv[1] + " " + global_argv[2] + " irc");
+                    hostname = hashs[i + 1];
+                    thread t(Chat_client, string("irc"), std::ref(client));
+
+                    thread t2(Chat_client, string("rtc"), std::ref(client));
+                    t.join();
+                    t2.join();
                 }
             }
             if (argc >= 4)
