@@ -369,12 +369,15 @@ char getch()
     return (buf);
 }
 string s = "";
-int _x=0;
-int _y=0;
-bool mousemode=0;
+int _x = 0;
+int _y = 0;
+bool mousemode = 0;
+char c;
+char lastc;
+map<string,bool>bannedmessaged;
 void Chat_client(string mode, httplib::Client &client)
 {
-    int _lasty=0;
+    int _lasty = 0;
     string buff = "";
     if (strcmp(mode.c_str(), "rtc") == 0)
     {
@@ -383,17 +386,26 @@ void Chat_client(string mode, httplib::Client &client)
         {
             auto resd = client.Get("/download/irc/");
             gethashs_step2(resd->body);
-            if (hashs.size() != irclastsize || _lasty!=_y)
-            {_lasty=_y;
+            if (hashs.size() != irclastsize || _lasty != _y ||lastc==127)
+            {
+                _lasty = _y;
                 lasts_size = s.size();
                 system("clear");
                 irclastsize = hashs.size();
                 for (int i = 0; i < hashs.size(); i++)
                 {
-                    if(_x==0){
-                        if(i==hashs.size()-_y)cout<<BOLDMAGENTA;
+                    if (_x == 0)
+                    {
+                        if (i == hashs.size() - _y)
+                            cout << BOLDMAGENTA;
+                        if(lastc==127)bannedmessaged[hashs[i]]=1;
+                        lastc=0;
+                        //cout<<(int)c<<endl;
                     }
-                    cout << b64decode(client.Get("/read/" + hashs[i] + "/")->body)<<RESET << "\r";
+                    if(!bannedmessaged[hashs[i]])
+                    cout << b64decode(client.Get("/read/" + hashs[i] + "/")->body) << RESET << "\r";
+                    
+
                 }
                 cout << "\r"
                      << " ->" << s;
@@ -401,21 +413,18 @@ void Chat_client(string mode, httplib::Client &client)
             else
             {
                 cout << "\r"
-                     << "-->" << s <<" xy: "<<_x<<","<<_y<< std::flush;
+                     << "-->" << s << " xy: " << _x << "," << _y << std::flush;
             }
 
 #include <chrono>
 #include <thread>
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(270));
+            std::this_thread::sleep_for(std::chrono::milliseconds(470));
         }
     }
     if (strcmp(mode.c_str(), "irc") == 0)
     {
 
-        char c;
-        char lastc;
-        
         while (true)
         {
             // cin.getline(Buff, 1024);
@@ -423,35 +432,41 @@ void Chat_client(string mode, httplib::Client &client)
             while (c != '\n')
             {
                 c = getch();
-                //cout<<(int)c<<endl;
-                if(c==127)
-                s.pop_back();
-                else if(lastc==91){
-                    if(mousemode){
-                        if(c==65){
+                // cout<<(int)c<<endl;
+                if (c == 127 && !mousemode)
+                    s.pop_back();
+                else if (lastc == 91)
+                {
+                    if (mousemode)
+                    {
+                        if (c == 65)
+                        {
                             _y++;
                         }
-                        if(c==66){
+                        if (c == 66)
+                        {
                             _y--;
                         }
-                        if(c==68){
+                        if (c == 68)
+                        {
                             _x--;
                         }
-                        if(c==67){
+                        if (c == 67)
+                        {
                             _x++;
                         }
                     }
                 }
-                else if(c==9){
-                    mousemode=!mousemode;
+                else if (c == 9)
+                {
+                    mousemode = !mousemode;
                 }
-                else if(c!=91)
-                s.push_back(c);
-                
-                
-                lastc=c;
+                else if (c != 91)
+                    s.push_back(c);
+
+                lastc = c;
             }
-            c = '\0';
+            c = '\0'; //very fucking important
             buff = s;
             client.Get("/write/" + sha256(hostname + " : " + buff) + "/" + b64encode(hostname + " : " + buff) + "/");
             client.Get("/append/irc/" + sha256(hostname + " : " + buff) + ",/");
